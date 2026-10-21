@@ -37,6 +37,9 @@ def _post(url: str, payload: Dict[str, Any], headers: Dict[str, str], timeout: f
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "replace")[:300]  # 錯誤內容不含金鑰
+        raise LLMError(f"HTTP {exc.code}: {body}") from exc
     except (urllib.error.URLError, OSError, ValueError) as exc:
         raise LLMError(f"請求失敗: {type(exc).__name__}") from exc
 
@@ -71,8 +74,8 @@ def _anthropic(system: str, user: str, images: Sequence[Path], temperature: floa
         for p in images]
     content.append({"type": "text", "text": user})
     data = _post("https://api.anthropic.com/v1/messages",
-                 {"model": _env("ANTHROPIC_MODEL", "claude-sonnet-5-5"), "max_tokens": 2048,
-                  "temperature": temperature, "system": system,
+                 {"model": _env("ANTHROPIC_MODEL", "claude-sonnet-5-5"), "max_tokens": 4096,
+                  "system": system,  # 新版 Claude 模型已不接受 temperature
                   "messages": [{"role": "user", "content": content}]},
                  {"x-api-key": key, "anthropic-version": "2023-06-01"}, timeout)
     try:

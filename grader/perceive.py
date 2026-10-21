@@ -53,7 +53,12 @@ def transcribe(video: Path, out_dir: Path) -> List[Dict[str, Any]]:
     except ImportError:
         return []
     model = WhisperModel(os.environ.get("GRADER_WHISPER_MODEL", "large-v3"), compute_type="auto")
-    segs, _ = model.transcribe(str(video), language="zh", vad_filter=True)
+    # 自己用 ffmpeg 解碼成 16k mono float32，避開 faster-whisper 內建 PyAV 的版本相容問題
+    import numpy as np
+    raw = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(video), "-f", "f32le", "-ac", "1",
+                          "-ar", "16000", "-"], capture_output=True).stdout
+    segs, _ = model.transcribe(np.frombuffer(raw, dtype=np.float32), language="zh", vad_filter=True,
+                                 initial_prompt=os.environ.get("GRADER_ASR_PROMPT", "以下是台灣國小到高中的繁體中文教學影片旁白。"))
     out = [{"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()} for s in segs]
     out_dir.mkdir(parents=True, exist_ok=True)
     cache.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
