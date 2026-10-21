@@ -1,0 +1,256 @@
+<title>AskBack Grader 進度報告</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: 單欄報告，窄欄文字，表格與圖表可橫向捲動；強調色只用在分數與段落標題 */
+  :root {
+    --bg: #f5f7f9;
+    --surface: #ffffff;
+    --ink: #15222e;
+    --muted: #55646f;
+    --line: #d9e0e6;
+    --accent: #0c6b73;
+    --accent-soft: #dcefef;
+    --warn: #a35a00;
+    --warn-soft: #fbeedb;
+    --bad: #a8322a;
+    --bad-soft: #f8e3e0;
+    --f-display: "Noto Serif TC", "Songti TC", serif;
+    --f-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10181f; --surface: #17222b; --ink: #e6edf2; --muted: #9aabb8; --line: #2a3945;
+      --accent: #5cc4cc; --accent-soft: #163a3e; --warn: #f0b15c; --warn-soft: #3b2c14;
+      --bad: #f19088; --bad-soft: #3d1f1c; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10181f; --surface: #17222b; --ink: #e6edf2; --muted: #9aabb8; --line: #2a3945;
+    --accent: #5cc4cc; --accent-soft: #163a3e; --warn: #f0b15c; --warn-soft: #3b2c14;
+    --bad: #f19088; --bad-soft: #3d1f1c; color-scheme: dark;
+  }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 400 16px/1.75 var(--f-body);
+    padding-block: 40px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+  h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.35; margin: 0; }
+  h1 { font-size: clamp(28px, 5vw, 40px); }
+  h2 { font-size: 26px; color: var(--accent); padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 18px; margin-bottom: 8px; }
+  p { margin: 0 0 12px; max-width: 68ch; }
+  ul, ol { margin: 0; padding-left: 1.3em; max-width: 68ch; }
+  li { margin-bottom: 6px; }
+  code, .mono { font-family: var(--f-mono); font-size: .88em; }
+  code { background: var(--accent-soft); padding: 1px 6px; border-radius: 4px; }
+  section { display: flex; flex-direction: column; gap: 20px; }
+  .meta { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .lede { font-size: 18px; color: var(--ink); max-width: 62ch; }
+
+  .flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .step { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+  .step b { display: block; font-family: var(--f-display); margin-bottom: 4px; }
+  .step small { color: var(--muted); display: block; line-height: 1.55; }
+  .step.in { background: var(--accent-soft); border-color: transparent; }
+  .arrow { color: var(--muted); font-family: var(--f-mono); font-size: 14px; }
+
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 15px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 500; color: var(--muted); font-size: 13px; letter-spacing: .04em; background: var(--bg); }
+  tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--f-mono); }
+  td.total { font-weight: 700; color: var(--accent); }
+
+  .bars { display: flex; flex-direction: column; gap: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
+  .vid { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 6px 16px; align-items: start; }
+  .vid > .label { font-weight: 700; grid-row: span 4; }
+  .vid > .label small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+  .row { display: grid; grid-template-columns: 82px minmax(0, 1fr) 44px; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+  .track { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+  .fill { height: 100%; background: var(--accent); border-radius: 5px; }
+  .fill.low { background: var(--bad); }
+  .val { font-family: var(--f-mono); text-align: right; color: var(--ink); }
+  .legend { font-size: 13px; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .note { border-radius: 8px; padding: 14px 18px; max-width: 68ch; }
+  .note.warn { background: var(--warn-soft); }
+  .note.bad { background: var(--bad-soft); }
+  .note.ok { background: var(--accent-soft); }
+  .note b { display: block; margin-bottom: 4px; }
+  .note p:last-child { margin: 0; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .cols > div { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; }
+  .tag { font-family: var(--f-mono); font-size: 12px; padding: 2px 8px; border-radius: 4px; background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+  .tag.done { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+  footer { color: var(--muted); font-size: 13px; }
+  @media (max-width: 720px) {
+    .flow { grid-template-columns: minmax(0, 1fr); }
+    .vid { grid-template-columns: minmax(0, 1fr); }
+    .vid > .label { grid-row: auto; }
+  }
+</style>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <div class="meta"><span>LLSMT 課程作業</span><span>進度報告</span><span class="mono">askback-grader @ e52dabe</span></div>
+  <h1>AskBack Grader：替補充教學影片打分的 AI 學生</h1>
+  <p class="lede">輸入一支 30–90 秒的補充教學影片（只有 mp4），輸出 0–100 分與逐項理由。目前流程已經能在三支範例影片上跑通，但分數的鑑別力還沒有被驗證，下面如實記錄做法、結果和已知問題。</p>
+</header>
+
+<section id="goal">
+  <h2>目的</h2>
+  <p>作業要求做一個「AI Student」：它看完教學影片後，給出一個代表影片好壞的分數，方法不限。評估對象是 <code>askback-skill</code> 產生的補充教學影片：學生在原課程第 t 秒卡住提問，AI 老師回應一支影片，最後帶回原課程。</p>
+  <p>課程的人工評分標準共四項：內容正確 35%、回應提問與適齡 30%、延續原片教法 20%、影音品質 15%。我們的分數照這個比重組成，讓它盡量貼近人工評分。</p>
+  <div class="note warn"><b>輸入限制</b><p>只有 mp4，沒有學生的問題、迷思或原影片。所以系統必須從影片本身還原「這支影片在回答什麼問題」。補充影片的開頭會複述學生的問題，這讓還原成為可能。</p></div>
+</section>
+
+<section id="method">
+  <h2>方法</h2>
+  <p>採用三層檢查再聚合：規則檢查（影音品質）、AI 小明前後測（教學效果）、LLM 審查（內容、適齡、銜接）。</p>
+
+  <div class="flow" role="list">
+    <div class="step in" role="listitem"><b>Stage 0 感知</b><small>ffprobe 探測、抽 8 張畫面、Whisper 轉寫旁白、視覺模型轉述畫面文字與算式</small></div>
+    <div class="step" role="listitem"><b>Stage 1 規則</b><small>長度 30–90 秒、有聲音與畫面、音量、全黑、靜止、解析度、語速、AI 生成標示</small></div>
+    <div class="step" role="listitem"><b>Stage 2 AI 小明</b><small>還原問題與迷思、出 4 題遷移題、小明在看影片前後各作答 k 次</small></div>
+    <div class="step" role="listitem"><b>Stage 3 審查</b><small>另一個模型找出數學與科學錯誤，並評回應提問、適齡、銜接</small></div>
+  </div>
+
+  <h3>Stage 2 的設計重點</h3>
+  <ul>
+    <li><b>資訊隔離。</b>出題者看得到整支影片；小明只拿到「迷思描述 + 題目」，看完影片後再多拿到影片的文字化內容；他永遠看不到答案。</li>
+    <li><b>答案鍵複核。</b>judge 不看答案鍵，獨立解題；結果與答案鍵不同的題目整題剔除。</li>
+    <li><b>只計有效題。</b>小明在沒看影片時答對率 ≥ 50% 的題目不算，因為沒有展現迷思就量不到進步。</li>
+    <li><b>增益。</b>每題算 (看完答對率 − 基線答對率) ÷ (1 − 基線答對率)，限制在 0–1，再平均。</li>
+  </ul>
+
+  <h3>聚合</h3>
+  <p><b>總分 = 0.35 × 內容正確 + 0.30 × 回應提問 + 0.20 × 延續教法 + 0.15 × 影音品質。</b>其中回應提問 = 0.6 × 小明增益 + 0.4 × 審查（回應與適齡的平均）。硬性條件未過（缺聲音、長度不符、缺 AI 標示）時總分上限 30。</p>
+
+  <h3>本次測試設定</h3>
+  <ul>
+    <li>所有角色（視覺、出題、小明、judge）都用 <code>claude-sonnet-5-5</code>；每題取樣 k = 3。</li>
+    <li>ASR 用 faster-whisper medium，附繁體中文提示。</li>
+    <li>測試影片：<code>askback-skill</code> 的三支範例 V01（昆蟲）、V11（根號）、V19（冷次定律）。</li>
+    <li>Qwen（≤30B）當小明的版本還沒跑。</li>
+  </ul>
+</section>
+
+<section id="results">
+  <h2>結果</h2>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>影片</th><th class="n">總分</th><th class="n">內容正確<br>35%</th><th class="n">回應提問<br>30%</th><th class="n">延續教法<br>20%</th><th class="n">影音品質<br>15%</th><th class="n">有效題</th><th class="n">小明增益</th></tr></thead>
+      <tbody>
+        <tr><td>V01 昆蟲<br><small style="color:var(--muted)">國小中年級 自然</small></td><td class="n total">72.1</td><td class="n">40</td><td class="n">90.4</td><td class="n">80</td><td class="n">100</td><td class="n">2 / 4</td><td class="n">100</td></tr>
+        <tr><td>V11 根號<br><small style="color:var(--muted)">國中 數學</small></td><td class="n total">79.8</td><td class="n">80</td><td class="n">68.0</td><td class="n">82</td><td class="n">100</td><td class="n">3</td><td class="n">55.6</td></tr>
+        <tr><td>V19 冷次定律<br><small style="color:var(--muted)">高中 物理</small></td><td class="n total">71.8</td><td class="n">40</td><td class="n">92.6</td><td class="n">75</td><td class="n">100</td><td class="n">3 / 4</td><td class="n">100</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bars" role="img" aria-label="三支影片四個評分項的長條圖，數值同上表">
+    <div class="vid"><div class="label">V01<small>72.1</small></div>
+      <div class="row"><span>內容正確</span><div class="track"><div class="fill low" style="width:40%"></div></div><span class="val">40</span></div>
+      <div class="row"><span>回應提問</span><div class="track"><div class="fill" style="width:90.4%"></div></div><span class="val">90.4</span></div>
+      <div class="row"><span>延續教法</span><div class="track"><div class="fill" style="width:80%"></div></div><span class="val">80</span></div>
+      <div class="row"><span>影音品質</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="val">100</span></div></div>
+    <div class="vid"><div class="label">V11<small>79.8</small></div>
+      <div class="row"><span>內容正確</span><div class="track"><div class="fill" style="width:80%"></div></div><span class="val">80</span></div>
+      <div class="row"><span>回應提問</span><div class="track"><div class="fill" style="width:68%"></div></div><span class="val">68</span></div>
+      <div class="row"><span>延續教法</span><div class="track"><div class="fill" style="width:82%"></div></div><span class="val">82</span></div>
+      <div class="row"><span>影音品質</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="val">100</span></div></div>
+    <div class="vid"><div class="label">V19<small>71.8</small></div>
+      <div class="row"><span>內容正確</span><div class="track"><div class="fill low" style="width:40%"></div></div><span class="val">40</span></div>
+      <div class="row"><span>回應提問</span><div class="track"><div class="fill" style="width:92.6%"></div></div><span class="val">92.6</span></div>
+      <div class="row"><span>延續教法</span><div class="track"><div class="fill" style="width:75%"></div></div><span class="val">75</span></div>
+      <div class="row"><span>影音品質</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="val">100</span></div></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>分數</span><span><i style="background:var(--bad)"></i>被審查的 major 錯誤壓到上限 40</span></div>
+  </div>
+
+  <h3>能確認的事</h3>
+  <ul>
+    <li>流程從 mp4 到分數與理由都能自動跑完，三支都成功。</li>
+    <li>AI 小明確實展現迷思：有效題的基線答對率都是 0%。作者模型還原的問題與迷思也貼題，例如 V19 抓到「感應磁場一定和磁鐵的磁場方向相反」。</li>
+    <li>基線就答對的題（V01 有 2 題、V19 有 1 題）被正確排除。</li>
+    <li>審查會指出具體位置的錯誤，例如 V19 的字幕寫「2 條 → 6 條」但畫面只畫三條箭頭。這些指認我還沒有逐一對照影片驗證。</li>
+  </ul>
+</section>
+
+<section id="issues">
+  <h2>已知問題</h2>
+  <div class="note bad"><b>小明增益幾乎都是 100，鑑別力不足</b>
+    <p>看完影片的小明只是讀影片的文字稿，文字稿寫了規則他就答對。V19 被審查標出多個 major 錯誤（字幕與圖示矛盾、說感應磁場「完全抵銷」變化），增益仍是 100。目前的增益量到的是「影片有沒有講出規則」，還不是「教得好不好」。V11 的 55.6 偏低，主要是其中一題是病句。</p></div>
+  <div class="note warn"><b>審查有誤判</b>
+    <p>V19 被標「口訣是亂碼」，V01 被標「兩段椰」、「樹鼠看」。這些很可能是 Whisper 轉寫錯誤，不是影片真的念錯，但目前都被當成影片的錯誤扣分。我沒有聽原音檔確認。</p></div>
+  <div class="note warn"><b>其他限制</b></div>
+  <ul>
+    <li><b>分數擠在 72–80</b>，三支看不出差別；「內容正確」只要有一個 major 錯誤就封頂 40，V01 與 V19 因此同分。</li>
+    <li><b>題目品質不穩。</b>V11 有一題是病句（「總長，與面積相加後所得新正方形的邊長，兩者相差多少？」），看完影片仍答 0%，把增益拉低。</li>
+    <li><b>小明是 Claude 扮演的</b>，比預期的 11 歲學生強很多。Qwen 版本還沒測。</li>
+    <li><b>Claude 新模型不接受 temperature 參數</b>，已移除，所以 k 次取樣的變異可能偏低。</li>
+    <li><b>「延續教法」只能估計</b>，因為沒有原片可以比對，只能判斷有沒有明確銜接回去。</li>
+    <li><b>沒有人工評分資料</b>，無法校準，也不知道分數與人工評分的相關性。</li>
+    <li><b>規則門檻只在 3 支影片上粗調</b>，例如靜止畫面的場景變化次數從 5 次降到 3 次才讓板書風格的 V11 通過。</li>
+  </ul>
+</section>
+
+<section id="conclusion">
+  <h2>結論</h2>
+  <div class="note ok"><b>目前的進度</b>
+    <p>已經有一條可以重現的打分管線，能在只有 mp4 的條件下，還原問題與迷思、讓 AI 學生前後測、審查內容，並給出帶理由的總分。三個模組（規則、小明、審查）的資訊各自獨立，方便分開檢討。</p></div>
+  <p>但目前還不能宣稱這個分數「代表影片好壞」。三支影片的分數太接近，增益會獎勵任何有講出規則的影片，審查又混入了轉寫錯誤。要成為可用的分數，下一步要證明它能把好影片和壞影片分開。</p>
+</section>
+
+<section id="next">
+  <h2>未來改進</h2>
+  <div class="cols">
+    <div><h3>先修</h3>
+      <ul>
+        <li>告訴審查者逐字稿是 ASR 產出，只有畫面或內容矛盾才算影片錯誤。</li>
+        <li>題目品質篩選：先讓另一個模型判斷題意是否清楚、答案是否唯一。</li>
+        <li>內容正確改成依錯誤數量與嚴重度扣分，不再一刀封頂。</li>
+      </ul></div>
+    <div><h3>讓小明更像學生</h3>
+      <ul>
+        <li>改用 Qwen3-8B（vLLM，Battleship 閒置的 TITAN RTX）扮演小明。</li>
+        <li>增加「要把規則套用到新情境」的題目，不只是複述影片裡的規則。</li>
+        <li>小明只拿到影片的部分內容（例如只看一半），測影片是否容易被理解。</li>
+      </ul></div>
+    <div><h3>驗證</h3>
+      <ul>
+        <li>跑 <code>eval/run_eval.py</code>：好影片 vs 影音缺陷變體的成對排序正確率。</li>
+        <li>做內容缺陷變體：改壞旁白造成數學錯誤、答非所問，再重新 TTS，檢查增益與內容正確是否真的下降。</li>
+        <li>若能取得人工評分，計算與總分的相關性並校準權重。</li>
+      </ul></div>
+  </div>
+</section>
+
+<section id="status">
+  <h2>目前完成度</h2>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>項目</th><th>狀態</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>Stage 0 感知</td><td><span class="tag done">已跑通</span></td><td>探測、抽幀、Whisper 轉寫、視覺轉述；轉寫仍有辨識錯誤</td></tr>
+        <tr><td>Stage 1 規則檢查</td><td><span class="tag done">已測試</span></td><td>4 個 pytest 通過；AI 生成標示需要視覺模型驗證</td></tr>
+        <tr><td>Stage 2 AI 小明</td><td><span class="tag done">已跑通</span></td><td>Claude 版；鑑別力待驗證，Qwen 版未跑</td></tr>
+        <tr><td>Stage 3 審查</td><td><span class="tag done">已跑通</span></td><td>輸出的錯誤指認尚未逐一人工核對</td></tr>
+        <tr><td>聚合與理由</td><td><span class="tag done">已跑通</span></td><td>權重照課程評分標準</td></tr>
+        <tr><td>影音缺陷變體</td><td><span class="tag">部分產生</span></td><td><code>eval/make_variants.py</code> 已寫；排序驗證未執行</td></tr>
+        <tr><td>內容缺陷變體</td><td><span class="tag">未開始</span></td><td>需改寫旁白並重新 TTS</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>範例影片來自 askback-skill，原始教材為均一教育平台 Junyi Academy（CC BY-NC-SA 3.0 TW）。本報告的分數與錯誤指認均為 AI 產出，未經人工評分驗證。</footer>
+</div>

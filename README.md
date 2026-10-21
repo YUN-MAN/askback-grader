@@ -43,3 +43,13 @@ python eval/run_eval.py        # → runs/eval_report.json：成對排序正確�
 - ⚠️ `not_static` 等門檻只在 3 支範例影片上粗調
 - ⬜ 內容缺陷變體（數學錯誤、答非所問）：需改寫旁白 + TTS
 - ⬜ 沒有原片可比對，「延續教法」只能估計
+
+## 報告
+
+進度報告（目的、方法、結果、已知問題、未來改進）：[`docs/report.html`](docs/report.html)（單檔網頁，下載後用瀏覽器開啟）。
+
+## 授權
+
+- 程式碼：MIT，見 [`LICENSE`](LICENSE)。
+- `data/good/` 的範例影片改作自均一教育平台教材，採 **CC BY-NC-SA 3.0 TW**，限非商業使用。
+  詳見 [`data/ATTRIBUTION.md`](data/ATTRIBUTION.md)。影片為 AI 生成示範，非原講者本人。
